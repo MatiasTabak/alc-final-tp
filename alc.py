@@ -182,10 +182,6 @@ def calcularMatrizK2D(A):
 # Funciones pedidas por el TP  ----------- Ejercicio 3 ------------- Punto 5 --------------
 
 def obtenerPose2D(Hj, K):
-    '''
-    Parámetros que recibe: toma la homografia de una imagen y la matriz K de la cámara
-    Output: retorna la matriz R y t asociadas a la cámara en la imagen vínculada a la homografia del input
-    '''
     Kinv = inversa(K)
     C1,C2,C3 = Hj[:,0],Hj[:,1],Hj[:,2]
     KinvC1,KinvC2,KinvC3 = np.zeros(Kinv.shape[0]),np.zeros(Kinv.shape[0]),np.zeros(Kinv.shape[0])
@@ -194,16 +190,25 @@ def obtenerPose2D(Hj, K):
     KinvC2 = arroba(Kinv, C2)
     KinvC3 = arroba(Kinv, C3)
 
-    λ = 1/norma(KinvC1,2)
+    λ = 2 / (norma(KinvC1, 2) + norma(KinvC2, 2))
+
     if λ * KinvC3[2] < 0:
         λ = -λ
+
     r1 = λ*KinvC1
     r2 = λ*KinvC2
     r3 = np.array([r1[1]*r2[2]-r1[2]*r2[1],-r1[0]*r2[2]+r1[2]*r2[0],r1[0]*r2[1]-r1[1]*r2[0]])
     Rj = np.zeros((3,3))
     Rj[:,0], Rj[:,1], Rj[:,2] = r1,r2,r3
     tj = λ*KinvC3
-    
+    # Ortonormalización: la rotación más cercana a Rj es U Vᵀ
+    U, S, Vt = svd_reducida(Rj)
+    Rj = arroba(U, transpuesta(Vt))
+    # Evitar una reflexión (det = -1)
+    if determinante_3x3(Rj) < 0:
+        U[:,-1] = -U[:,-1]
+        Rj = arroba(U, Vt)
+
     return Rj,tj
 
 # Funciones pedidas por el TP  ----------- Ejercicio 4
