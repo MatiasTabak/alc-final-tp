@@ -12,13 +12,9 @@ import numpy as np
 
 def obtenerQ3d(imPts, objtPts):
     """
-    Parámetros que recibe:
-    Output:
-
-    Construcción de la matriz Q en base a la definición del marco teórico, 
-    recibe dos arrays, imPts y objtPts. Retorna la matriz Q de dimensiones 2N x 12.    
+    Parámetros que recibe: recibe dos arrays, imPts y objtPts, que contienen las coordenadas del punto del objeto tanto en el plano imagen como en el mundo real
+    Output: la matriz de calibración Q de dimensión (2nx12) del método DLT
     """
-
     U, V, W = objtPts[:,0], objtPts[:,1], objtPts[:,2]
 
     Q = np.zeros((2*objtPts.shape[0],12))
@@ -38,11 +34,8 @@ def obtenerQ3d(imPts, objtPts):
 
 def resolverDLT3D(Q):
     '''
-    Parámetros que recibe:
-    Output:
-
-    Parámetros que recibe: la matriz de calibración Q de 2nx12.
-    Output esperado: la matriz M que es igual a K[R t].
+    Parámetros que recibe: la matriz de calibración Q de (2nx12)
+    Output: la matriz M que es igual a K[R t]
     '''
     #Dado que en el mundo real no existe un vector m distinto de cero en el núcleo de Q, entonces por la demostración dada en el punto (1b) vemos que podemos obtener M tomando la última columna de la matriz V, siendo V la matriz dada en la desomposición SVD de la matriz Q del input.
     hatU, hatSig, hatV = svd_reducida(Q,'max',1e-15) 
@@ -54,9 +47,6 @@ def resolverDLT3D(Q):
 
 def devolverMatricesCalibracion3d(M,sesgoNulo=False,alphasIguales=False):
     '''
-    Parámetros que recibe:
-    Output:
-
     Parámetros que recibe: M, la matriz dada por la múltplicación de las variables extrínsecas e instrínsecas de la cámara; sesgoNulo un booleano determinado como False y en caso de ser True asigna el sesgo a cero; y alphasIguales un booleano determinado como False y en caso de ser True asignará en cada posición de alpha el promedio entre alpha_u y alpha_v igualando el valor de ambas.
     Output: las matrices R,t y K que representas a las variables extrínsecas y los parámetros intrínsecos de la cámara.
     '''
@@ -114,12 +104,8 @@ def devolverMatricesCalibracion3d(M,sesgoNulo=False,alphasIguales=False):
 
 def obtenerQ2d(imgPts, objPts):
     """
-    Parámetros que recibe:
-    Output:
-
-    Construcción de la matriz Q para el cálculo de homografía H
-    Recibe un arreglo 1D imgPts y un arreglo 2D objPts 
-    y retorna la matriz Q preasignada de dimensiones 2N x 9.
+    Parámetros que recibe: recibe dos arrays, imPts y objtPts, que contienen las coordenadas del punto del objeto tanto en el plano imagen como en el mundo real
+    Output: la matriz de calibración Q de dimensión (2nx9) del método DLT para el caso coplanar
     """
     U, V = objPts[:, 0], objPts[:, 1]
     N = objPts.shape[0]
@@ -139,8 +125,8 @@ def obtenerQ2d(imgPts, objPts):
 
 def armarA(Hlst):
     '''
-    Parámetros que recibe:
-    Output:
+    Parámetros que recibe: una lista de matrices de homografias H, donde cada H se encuentra asociada a una foto
+    Output: una matriz A de dimensión (2nx6) donde a partir de las dos primeras columnas de cada H construye 2 filas por imagen que traducen de forma lineal las condiciones de ortogonalidad e igualdad de norma sobre la matriz B y coloca estas restricciones, vectores, verticalmente
     '''
     n = len(Hlst)
     A = np.zeros((2 * n, 6))
@@ -163,8 +149,8 @@ def armarA(Hlst):
 
 def calcularMatrizK2D(A):
     '''
-    Parámetros que recibe:
-    Output:
+    Parámetros que recibe: una matriz A construida a base de una lista de homografias
+    Output: la matriz K de parámetros intrínsecos asociada a la cámara de las fotografías de las homografías
 
     Calcula K a partir de A (2N x 6) por el método de Zhang.
     Resuelve min ||A b|| con ||b|| = 1, arma B simétrica, elige el signo para que B
@@ -197,8 +183,8 @@ def calcularMatrizK2D(A):
 
 def obtenerPose2D(Hj, K):
     '''
-    Parámetros que recibe:
-    Output:
+    Parámetros que recibe: toma la homografia de una imagen y la matriz K de la cámara
+    Output: retorna la matriz R y t asociadas a la cámara en la imagen vínculada a la homografia del input
     '''
     Kinv = inversa(K)
     C1,C2,C3 = Hj[:,0],Hj[:,1],Hj[:,2]
@@ -238,11 +224,8 @@ def obtenerPose2D(Hj, K):
 
 def calculoLambdaMu(I0, J0):
     """
-    Parámetros que recibe:
-    Output:
-
-    Recibe los vectores I0 y J0
-    Devuelve los escalares lambda y mu
+    Parámetros que recibe: recibe los vectores I0 y J0, representan las dos primeras filas de la matriz de rotación escaladas por la profundidad del origen del objeto (Z_0)
+    Output: los escalares lambda y mu que resuelven las condiciones de ortogonalidad (I · J = 0) e igualdad de norma (||I|| = ||J||) al proyectar sobre el vector normal al plano, logrando así reconstruir una matriz de rotación R ortonormal válida
     """
     # Norma al cuadrado 
     norma_I0 = np.sum(I0 * I0)
@@ -273,11 +256,8 @@ def calculoLambdaMu(I0, J0):
 
 def calcularSalidaPOSIT(Is, Js, fx, mO, MO):
     """
-    Parámetros que recibe:
-    Output:
-
-    Recibe los vectores Is y Js, la distancia focal dada fx, el píxel m0 y el punto real M0 
-    Devuelve los ejes (i, j, k), la profundidad del punto de referencia Z0 y la pose (R, t)
+    Parámetros que recibe: recibe los vectores Is y Js, la distancia focal dada fx, el píxel m0 y el punto real M0 
+    Output: devuelve los ejes (i, j, k), la profundidad del punto de referencia Z0 y la pose (R, t)
     """
 
     # Calcado del marco teórico
@@ -315,11 +295,8 @@ def calcularSalidaPOSIT(Is, Js, fx, mO, MO):
 
 def evaluarPose(R, t, obj_vecs, img_vecs, K):
     """
-    Parámetros que recibe:
-    Output:
-
-    Recibe la pose (R, t), los puntos 3D (obj_vecs), los píxeles 2D (img_vecs) y la matriz K dada
-    Devuelve la cantidad de proyecciones válidas (Z > 0) y el RMS 
+    Parámetros que recibe: recibe la pose (R, t), los puntos 3D (obj_vecs), los píxeles 2D (img_vecs) y la matriz K dada
+    Output: devuelve la cantidad de proyecciones válidas (Z > 0) y el RMS
     """
     n = obj_vecs.shape[0]
     validos = 0
@@ -360,8 +337,8 @@ def evaluarPose(R, t, obj_vecs, img_vecs, K):
 
 def aplicarPOSIT(obj_vecs, img_vecs, K, MaxIt, atol):
     """
-    Parámetros que recibe:
-    Output:
+    Parámetros que recibe: obj_vecs, arreglo de dimensión (nx3) con las coordenadas 3D coplanares de los puntos en el sistema del mundo real (Z = 0); img_vecs, arreglo de dimensión (nx2) con las coordenadas 2D (u,v) en píxeles de los puntos proyectados en la imagen; K, matriz de parámetros intrínsecos de la cámara de dimensión (3x3); MaxIt, entero que indica la cantidad máxima de iteraciones permitidas para el algoritmo POSIT coplanar; atol, flotante que define la tolerancia absoluta para el criterio de parada sobre la variación máxima de los factores de perspectiva (epsilon)
+    Output: mejor_R, matriz de rotación de dimensión (3x3) estimada para la pose del objeto respecto a la cámara; mejor_t, vector de traslación de dimensión (3x1) que indica la posición del origen del sistema del objeto respecto a la cámara
     """
     
     N = obj_vecs.shape[0]
